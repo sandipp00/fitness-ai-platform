@@ -1,0 +1,32 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile Python
+        run: python -m compileall -q app tests scripts
+      - name: Run tests
+        env:
+          SECRET_KEY: ci-test-secret-key-1234567890
+          DATABASE_URL: sqlite:///./ci-test.db
+          ENVIRONMENT: development
+        run: pytest -q
+      - name: Remove test database
+        if: always()
+        run: rm -f ci-test.db

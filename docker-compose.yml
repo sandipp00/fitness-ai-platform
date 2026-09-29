@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: fitness
+      POSTGRES_USER: fitness
+      POSTGRES_PASSWORD: fitness
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitness -d fitness"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: change-this-in-production-to-a-long-random-value
+      DATABASE_URL: postgresql+psycopg://fitness:fitness@db:5432/fitness
+      ENVIRONMENT: development
+      CORS_ORIGINS: http://localhost:3000,http://localhost:8080
+
+volumes:
+  postgres_data:
