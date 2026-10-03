@@ -63,9 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final d = data;
     return Scaffold(
-      appBar: AppBar(
+      appBar: _selectedIndex == 0 ? AppBar(
         backgroundColor: Colors.transparent,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,17 +77,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(onPressed: load, icon: const Icon(Icons.refresh)),
           IconButton(onPressed: logout, icon: const Icon(Icons.logout_outlined)),
         ],
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _dashboardContent(),
-          const HealthScreen(),
-          const WorkoutPlanScreen(),
-          const CoachScreen(),
-          const ProgressScreen(),
-        ],
-      ),
+      ) : null,
+      body: _selectedPage(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) => setState(() => _selectedIndex = index),
@@ -101,6 +91,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  Widget _selectedPage() {
+    switch (_selectedIndex) {
+      case 1:
+        return const HealthScreen();
+      case 2:
+        return const WorkoutPlanScreen();
+      case 3:
+        return const CoachScreen();
+      case 4:
+        return const ProgressScreen();
+      default:
+        return _dashboardContent();
+    }
   }
 
   Widget _dashboardContent() {
