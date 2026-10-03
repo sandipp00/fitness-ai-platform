@@ -289,6 +289,11 @@ fitness-ai-platform/
 │
 ├── mobile/
 │   ├── lib/
+│   │   ├── theme/
+│   │   ├── screens/
+│   │   ├── services/
+│   │   ├── models/
+│   │   └── widgets/
 │   ├── android/
 │   ├── pubspec.yaml
 │   └── README.md
