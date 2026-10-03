@@ -24,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DashboardData? data;
   String? error;
   bool loading = true;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -78,7 +79,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(onPressed: logout, icon: const Icon(Icons.logout_outlined)),
         ],
       ),
-      body: RefreshIndicator(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _dashboardContent(),
+          const HealthScreen(),
+          const WorkoutPlanScreen(),
+          const CoachScreen(),
+          const ProgressScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.health_and_safety_outlined), selectedIcon: Icon(Icons.health_and_safety), label: 'Health'),
+          NavigationDestination(icon: Icon(Icons.fitness_center_outlined), selectedIcon: Icon(Icons.fitness_center), label: 'Workout'),
+          NavigationDestination(icon: Icon(Icons.smart_toy_outlined), selectedIcon: Icon(Icons.smart_toy), label: 'Coach'),
+          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Progress'),
+        ],
+      ),
+    );
+  }
+
+  Widget _dashboardContent() {
+    final d = data;
+    return RefreshIndicator(
         onRefresh: load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -143,8 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
