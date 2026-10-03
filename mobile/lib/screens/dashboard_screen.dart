@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../models/dashboard_data.dart';
 import '../services/api_client.dart';
@@ -64,13 +66,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE7F0EE),
       appBar: _selectedIndex == 0 ? AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Fitness AI'),
-            Text('Your health at a glance', style: TextStyle(fontSize: 13, fontWeight: FontWeight.normal)),
+            Text('Your health snapshot for today', style: TextStyle(fontSize: 13, color: Colors.black54)),
           ],
         ),
         actions: [
@@ -187,20 +192,27 @@ class _RecoveryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final percent = value.clamp(0, 100);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0B4D45), Color(0xFF176B5E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF0B4D45).withOpacity(.18), blurRadius: 22, offset: const Offset(0, 10)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Recovery', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 4),
-          Text('${percent.toStringAsFixed(0)}%', style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w800)),
+          Text('${percent.toStringAsFixed(0)}%', style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w800, letterSpacing: -1.5)),
           const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(value: percent / 100, minHeight: 8, backgroundColor: Colors.white24, color: Colors.white),
           ),
         ],
