@@ -13,6 +13,7 @@ dependencies:
   shared_preferences: ^2.5.3
   health: ^13.3.2
   workmanager: ^0.10.10
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:
