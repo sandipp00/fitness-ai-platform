@@ -1,4 +1,5 @@
 import 'package:health/health.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class NormalizedHealthData {
   final DateTime day;
@@ -62,6 +63,13 @@ class HealthConnectService {
 
   Future<bool> requestAccess() async {
     await configure();
+
+    // Steps on Android also require the runtime Activity Recognition permission.
+    final activityStatus = await Permission.activityRecognition.request();
+    if (!activityStatus.isGranted) {
+      return false;
+    }
+
     return health.requestAuthorization(types, permissions: permissions);
   }
 
