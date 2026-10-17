@@ -12,15 +12,19 @@ class DashboardData {
   final List<String> recommendations;
 
   DashboardData.fromJson(Map<String, dynamic> json)
-      : steps = (json['activity']['steps'] ?? 0) as int,
-        activeMinutes = (json['activity']['active_minutes'] ?? 0) as int,
-        caloriesBurned = ((json['activity']['calories_burned'] ?? 0) as num).toDouble(),
-        distanceKm = ((json['activity']['distance_km'] ?? 0) as num).toDouble(),
-        sleepHours = ((json['sleep']['hours'] ?? 0) as num).toDouble(),
-        waterLiters = ((json['water_liters'] ?? 0) as num).toDouble(),
-        recovery = ((json['scores']['recovery'] ?? 0) as num).toDouble(),
-        activityScore = ((json['scores']['activity'] ?? 0) as num).toDouble(),
-        sleepScore = ((json['scores']['sleep'] ?? 0) as num).toDouble(),
-        workoutsToday = (json['workouts_today'] ?? 0) as int,
+      : steps = _int(json['activity']?['steps']),
+        activeMinutes = _int(json['activity']?['active_minutes']),
+        caloriesBurned = _double(json['activity']?['calories_burned']),
+        distanceKm = _double(json['activity']?['distance_km']),
+        sleepHours = _double(json['sleep']?['hours']),
+        waterLiters = _double(json['water_liters']),
+        recovery = _double(json['scores']?['recovery']),
+        activityScore = _double(json['scores']?['activity']),
+        sleepScore = _double(json['scores']?['sleep']),
+        workoutsToday = _int(json['workouts_today']),
         recommendations = List<String>.from(json['recommendations'] ?? const []);
+
+  // The API may send whole numbers as floats (e.g. 120.0); accept any number.
+  static int _int(Object? value) => value is num ? value.round() : 0;
+  static double _double(Object? value) => value is num ? value.toDouble() : 0;
 }

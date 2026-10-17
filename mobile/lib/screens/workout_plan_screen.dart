@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
-import '../services/session.dart';
 
 class WorkoutPlanScreen extends StatefulWidget {
   const WorkoutPlanScreen({super.key});
@@ -10,8 +9,7 @@ class WorkoutPlanScreen extends StatefulWidget {
 }
 
 class _WorkoutPlanScreenState extends State<WorkoutPlanScreen> {
-  final api = const ApiClient();
-  final session = const Session();
+  final api = ApiClient.shared;
   Map<String, dynamic>? plan;
   String? error;
 
@@ -23,9 +21,7 @@ class _WorkoutPlanScreenState extends State<WorkoutPlanScreen> {
 
   Future<void> load() async {
     try {
-      final token = await session.getToken();
-      if (token == null) throw Exception('Session expired');
-      final result = await api.getWorkoutPlan(token);
+      final result = await api.getWorkoutPlan();
       if (mounted) setState(() => plan = result['plan'] as Map<String, dynamic>);
     } catch (e) {
       if (mounted) setState(() => error = e.toString());

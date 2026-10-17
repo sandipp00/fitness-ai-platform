@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
-import '../services/session.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
@@ -11,8 +10,7 @@ class PersonalizationScreen extends StatefulWidget {
 }
 
 class _PersonalizationScreenState extends State<PersonalizationScreen> {
-  final api = const ApiClient();
-  final session = const Session();
+  final api = ApiClient.shared;
   Map<String, dynamic>? data;
   String? error;
 
@@ -24,9 +22,7 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
 
   Future<void> load() async {
     try {
-      final token = await session.getToken();
-      if (token == null) throw Exception('Session expired');
-      final result = await api.getPersonalization(token);
+      final result = await api.getPersonalization();
       if (mounted) setState(() => data = result);
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
@@ -167,7 +163,7 @@ class _Metric extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.55),
+        color: Colors.white.withValues(alpha: .55),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -222,7 +218,7 @@ class _Setting extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: AppColors.mint.withOpacity(.5),
+                color: AppColors.mint.withValues(alpha: .5),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: AppColors.primary, size: 19),

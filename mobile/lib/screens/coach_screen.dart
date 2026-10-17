@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
-import '../services/session.dart';
 
 class CoachScreen extends StatefulWidget {
   const CoachScreen({super.key});
@@ -12,8 +11,7 @@ class CoachScreen extends StatefulWidget {
 
 class _CoachScreenState extends State<CoachScreen> {
   final controller = TextEditingController();
-  final api = const ApiClient();
-  final session = const Session();
+  final api = ApiClient.shared;
 
   final messages = <_Message>[];
   bool sending = false;
@@ -29,10 +27,7 @@ class _CoachScreenState extends State<CoachScreen> {
     });
 
     try {
-      final token = await session.getToken();
-      if (token == null) throw Exception('Session expired');
-
-      final result = await api.chat(token, text);
+      final result = await api.chat(text);
       if (!mounted) return;
 
       setState(() {
@@ -44,7 +39,7 @@ class _CoachScreenState extends State<CoachScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        messages.add(_Message('Coach error: $e', false));
+        messages.add(_Message('Sorry, I could not answer that: $e', false));
       });
     } finally {
       if (mounted) setState(() => sending = false);

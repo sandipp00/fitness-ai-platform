@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/health_connect_service.dart';
 import '../services/health_sync_service.dart';
+import 'privacy_policy_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
@@ -10,21 +12,96 @@ class HealthScreen extends StatefulWidget {
 }
 
 class _HealthScreenState extends State<HealthScreen> {
-  final sync = const HealthSyncService();
+  final sync = HealthSyncService();
   bool busy = false;
   String message = 'Not connected';
+  NormalizedHealthData? latest;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastSync();
+  }
+
+  Future<void> _loadLastSync() async {
+    final last = await HealthSyncService.lastSync();
+    if (last != null && mounted) {
+      setState(() => message = 'Last synced ${_formatTime(last)}.');
+    }
+  }
+
+  static String _formatTime(DateTime time) {
+    final local = time.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    final now = DateTime.now();
+    final sameDay = local.year == now.year && local.month == now.month && local.day == now.day;
+    return sameDay ? 'today at $hh:$mm' : 'on ${local.day}/${local.month} at $hh:$mm';
+  }
+
+  Future<bool> _ensureConsent() async {
+    if (await HealthSyncService.hasConsent()) return true;
+    if (!mounted) return false;
+    final agreed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share health data with Kinetiq?'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'Kinetiq will read your daily steps, active minutes, active calories, distance '
+            'and sleep duration, and upload these daily totals to your Kinetiq account to '
+            'calculate your scores, trends and plans.\n\n'
+            'Kinetiq never writes to your health app and never sells your data. You can '
+            'revoke access in your health app settings and delete your data from '
+            'Account & privacy at any time.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+            ),
+            child: const Text('Privacy policy'),
+          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Not now')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Agree')),
+        ],
+      ),
+    );
+    if (agreed == true) await HealthSyncService.setConsent(true);
+    return agreed == true;
+  }
 
   Future<void> connect() async {
+    if (!await _ensureConsent()) return;
+    if (!mounted) return;
     setState(() {
       busy = true;
       message = 'Requesting health permissions…';
     });
     try {
-      final ok = await sync.connectAndSync();
+      final (result, data) = await sync.connectAndSync();
       if (!mounted) return;
-      setState(() => message = ok
-          ? 'Connected and synced today’s health data.'
-          : 'Permission was not granted.');
+      switch (result) {
+        case ConnectResult.synced:
+          setState(() {
+            latest = data;
+            message = 'Connected. Synced today’s data; Kinetiq will keep it updated hourly.';
+          });
+          break;
+        case ConnectResult.permissionDenied:
+          setState(() => message =
+              'Permission was not granted. Allow access to steps, exercise, distance, calories '
+              'and sleep in your health app settings, then try again.');
+          break;
+        case ConnectResult.needsInstall:
+          setState(() => message = 'Health Connect needs to be installed or updated first.');
+          await sync.health.installHealthConnect();
+          break;
+        case ConnectResult.unavailable:
+          setState(() => message = 'Health data is not available on this device.');
+          break;
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => message = 'Health sync failed: $e');
@@ -35,6 +112,8 @@ class _HealthScreenState extends State<HealthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final d = latest;
+    final source = sync.health.isAndroid ? 'Health Connect' : 'Apple Health';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -42,10 +121,6 @@ class _HealthScreenState extends State<HealthScreen> {
           'Health',
           style: TextStyle(color: AppColors.text, fontSize: 22, fontWeight: FontWeight.w800),
         ),
-        actions: const [
-          Icon(Icons.settings_outlined),
-          SizedBox(width: 18),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
@@ -119,22 +194,28 @@ class _HealthScreenState extends State<HealthScreen> {
             style: TextStyle(color: AppColors.text, fontSize: 19, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          const _HealthRow(
+          _HealthRow(
             icon: Icons.directions_walk_rounded,
             title: 'Steps',
-            subtitle: 'Synced from Health Connect',
+            subtitle: d == null ? 'Synced from $source' : '${d.steps} steps · ${d.distanceKm.toStringAsFixed(1)} km',
             accent: AppColors.success,
           ),
-          const _HealthRow(
+          _HealthRow(
+            icon: Icons.timer_outlined,
+            title: 'Active time',
+            subtitle: d == null ? 'Synced from $source' : '${d.activeMinutes} min',
+            accent: AppColors.blue,
+          ),
+          _HealthRow(
             icon: Icons.nightlight_round,
             title: 'Sleep',
-            subtitle: 'Synced from Health Connect',
+            subtitle: d == null ? 'Synced from $source' : '${d.sleepHours.toStringAsFixed(1)} h last night',
             accent: AppColors.purple,
           ),
-          const _HealthRow(
+          _HealthRow(
             icon: Icons.local_fire_department_rounded,
             title: 'Active energy',
-            subtitle: 'Synced from Health Connect',
+            subtitle: d == null ? 'Synced from $source' : '${d.caloriesBurned.round()} kcal',
             accent: AppColors.orange,
           ),
         ],
@@ -168,7 +249,7 @@ class _HealthRow extends StatelessWidget {
             Container(
               width: 42,
               height: 42,
-              decoration: BoxDecoration(color: accent.withOpacity(.13), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: accent.withValues(alpha: .13), shape: BoxShape.circle),
               child: Icon(icon, color: accent, size: 21),
             ),
             const SizedBox(width: 12),
