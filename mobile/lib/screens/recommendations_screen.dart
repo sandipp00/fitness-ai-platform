@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
-import '../services/session.dart';
 
 class RecommendationsScreen extends StatefulWidget {
   const RecommendationsScreen({super.key});
@@ -11,8 +10,7 @@ class RecommendationsScreen extends StatefulWidget {
 }
 
 class _RecommendationsScreenState extends State<RecommendationsScreen> {
-  final api = const ApiClient();
-  final session = const Session();
+  final api = ApiClient.shared;
   Map<String, dynamic>? data;
   String? error;
 
@@ -24,9 +22,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   Future<void> load() async {
     try {
-      final token = await session.getToken();
-      if (token == null) throw Exception('Session expired');
-      final result = await api.getRecommendations(token);
+      final result = await api.getRecommendations();
       if (mounted) setState(() => data = result);
     } catch (e) {
       if (mounted) setState(() => error = e.toString());

@@ -7,7 +7,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Fitness Ai App</string>
+	<string>Kinetiq</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Kinetiq reads your steps, exercise time, active energy, distance and sleep to calculate your recovery score, trends and personalized workout plans.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Kinetiq does not write data to Apple Health.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +19,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>fitness_ai_app</string>
+	<string>Kinetiq</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

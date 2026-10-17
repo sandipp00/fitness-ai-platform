@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/dashboard_data.dart';
 import '../services/api_client.dart';
-import '../services/session.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/glass_nav_bar.dart';
 import '../widgets/stat_card.dart';
-import 'auth_screen.dart';
+import 'account_screen.dart';
 import 'coach_screen.dart';
 import 'health_screen.dart';
 import 'personalization_screen.dart';
@@ -22,8 +21,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final api = const ApiClient();
-  final session = Session();
+  final api = ApiClient.shared;
 
   DashboardData? data;
   String? error;
@@ -42,19 +40,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       error = null;
     });
 
-    final token = await session.getToken();
-    if (token == null) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AuthScreen()),
-      );
-      return;
-    }
-
     try {
-      final json = await api.getDashboard(token);
+      final json = await api.getDashboard();
       if (!mounted) return;
       setState(() => data = DashboardData.fromJson(json));
+    } on SessionExpiredException {
+      // The app-level listener returns to the sign-in screen.
     } catch (e) {
       if (!mounted) return;
       setState(() => error = e.toString());
@@ -63,12 +54,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> logout() async {
-    await session.clear();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const AuthScreen()),
-      (_) => false,
+  void _openAccount() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AccountScreen()),
     );
   }
 
@@ -81,7 +69,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: _selectedPage(),
       bottomNavigationBar: GlassNavBar(
         selectedIndex: _selectedIndex,
-        onSelected: (index) => setState(() => _selectedIndex = index),
+        onSelected: (index) {
+          setState(() => _selectedIndex = index);
+          // Pick up anything synced on the Health tab.
+          if (index == 0) load();
+        },
       ),
     );
   }
@@ -126,14 +118,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           tooltip: 'Refresh',
           icon: const Icon(Icons.refresh_rounded),
         ),
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'logout') logout();
-          },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'logout', child: Text('Log out')),
-          ],
-          icon: const Icon(Icons.more_horiz_rounded),
+        IconButton(
+          onPressed: _openAccount,
+          tooltip: 'Account & privacy',
+          icon: const Icon(Icons.account_circle_outlined),
         ),
         const SizedBox(width: 8),
       ],
@@ -165,26 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
         children: [
-          GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            radius: 22,
-            child: const Row(
-              children: [
-                Icon(Icons.search_rounded, color: AppColors.mutedText),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Search workouts, health data...',
-                    style: TextStyle(
-                      color: AppColors.mutedText,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 8),
           if (loading && d == null)
             const Padding(
               padding: EdgeInsets.only(top: 30),
@@ -243,7 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 24),
             _SectionHeader(
-              title: "Today's workout",
+              title: 'Workout plan',
               action: 'View more',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const WorkoutPlanScreen()),
@@ -316,7 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: AppColors.mint.withOpacity(.55),
+                            color: AppColors.mint.withValues(alpha: .55),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -483,7 +452,7 @@ class _WorkoutCard extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withOpacity(.9)),
+        border: Border.all(color: Colors.white.withValues(alpha: .9)),
       ),
       child: Stack(
         children: [
@@ -493,7 +462,7 @@ class _WorkoutCard extends StatelessWidget {
             child: Icon(
               Icons.fitness_center_rounded,
               size: 150,
-              color: AppColors.primary.withOpacity(.10),
+              color: AppColors.primary.withValues(alpha: .10),
             ),
           ),
           Padding(
@@ -502,7 +471,7 @@ class _WorkoutCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Upper Body Strength',
+                  'Your weekly plan',
                   style: TextStyle(
                     color: AppColors.text,
                     fontSize: 20,
@@ -511,7 +480,7 @@ class _WorkoutCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  '18 exercises • 35 min',
+                  'Adapted to your recovery and activity',
                   style: TextStyle(
                     color: AppColors.mutedText,
                     fontSize: 12,
@@ -565,7 +534,7 @@ class _CircularMetric extends StatelessWidget {
           CircularProgressIndicator(
             value: (value.clamp(0, 100)) / 100,
             strokeWidth: 7,
-            backgroundColor: color.withOpacity(.12),
+            backgroundColor: color.withValues(alpha: .12),
             color: color,
           ),
           Column(

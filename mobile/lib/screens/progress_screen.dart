@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
-import '../services/session.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
@@ -11,8 +10,7 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  final api = const ApiClient();
-  final session = const Session();
+  final api = ApiClient.shared;
   Map<String, dynamic>? data;
   String? error;
 
@@ -24,9 +22,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   Future<void> load() async {
     try {
-      final token = await session.getToken();
-      if (token == null) throw Exception('Session expired');
-      final result = await api.getTrends(token);
+      final result = await api.getTrends();
       if (mounted) setState(() => data = result);
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
@@ -194,9 +190,9 @@ class _Pills extends StatelessWidget {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: selected ? Colors.white : Colors.white.withOpacity(.38),
+                color: selected ? Colors.white : Colors.white.withValues(alpha: .38),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(.75)),
+                border: Border.all(color: Colors.white.withValues(alpha: .75)),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -245,7 +241,7 @@ class _Chart extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: selected
                           ? AppColors.primary
-                          : AppColors.primary.withOpacity(.13),
+                          : AppColors.primary.withValues(alpha: .13),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),

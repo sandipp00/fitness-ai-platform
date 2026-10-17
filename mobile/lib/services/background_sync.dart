@@ -1,32 +1,35 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'api_client.dart';
 import 'health_connect_service.dart';
+import 'session.dart';
 
-const healthSyncTask = 'fitness_ai_health_sync';
+const healthSyncTask = 'kinetiq_health_sync';
+const _uniqueName = 'kinetiq-hourly-health-sync';
 
 @pragma('vm:entry-point')
 void healthBackgroundCallback() {
   Workmanager().executeTask((task, inputData) async {
     if (task != healthSyncTask) return true;
+    WidgetsFlutterBinding.ensureInitialized();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      if (token == null || token.isEmpty) return true;
+      if (!await const Session().isSignedIn()) return true;
 
-      final health = const HealthConnectService();
+      final health = HealthConnectService();
       if (!await health.backgroundAvailable()) return true;
       if (!await health.backgroundAuthorized()) return true;
       if (!await health.hasAccess()) return true;
 
       final data = await health.readToday();
-      await const ApiClient().syncHealthData(token, data.toJson());
+      await ApiClient().syncHealthData(data.toJson());
+      return true;
+    } on SessionExpiredException {
+      await const BackgroundSync().cancel();
       return true;
     } catch (_) {
-      // Background jobs should not crash the application. Workmanager will
-      // retry according to the platform's scheduling policy when appropriate.
+      // Let Workmanager retry according to the platform's backoff policy.
       return false;
     }
   });
@@ -35,24 +38,15 @@ void healthBackgroundCallback() {
 class BackgroundSync {
   const BackgroundSync();
 
-  Future<void> initialize() async {
-    await Workmanager().initialize(
-      healthBackgroundCallback,
-      isInDebugMode: false,
-    );
-  }
+  Future<void> initialize() => Workmanager().initialize(healthBackgroundCallback);
 
-  Future<void> scheduleHourlyHealthSync() async {
-    await Workmanager().registerPeriodicTask(
-      'fitness-ai-hourly-health-sync',
-      healthSyncTask,
-      frequency: const Duration(hours: 1),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
-  }
+  Future<void> scheduleHourlyHealthSync() => Workmanager().registerPeriodicTask(
+        _uniqueName,
+        healthSyncTask,
+        frequency: const Duration(hours: 1),
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+        constraints: Constraints(networkType: NetworkType.connected),
+      );
 
-  Future<void> cancel() async {
-    await Workmanager().cancelByUniqueName('fitness-ai-hourly-health-sync');
-  }
+  Future<void> cancel() => Workmanager().cancelByUniqueName(_uniqueName);
 }

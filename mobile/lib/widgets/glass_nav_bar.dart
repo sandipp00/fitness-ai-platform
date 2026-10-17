@@ -34,7 +34,7 @@ class GlassNavBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xD9F8FCFA),
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.white.withOpacity(.9)),
+              border: Border.all(color: Colors.white.withValues(alpha: .9)),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x1A073E38),

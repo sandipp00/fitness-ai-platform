@@ -1,7 +1,7 @@
-name: fitness_ai_app
-description: Clean mobile client for the Fitness AI Platform.
+name: kinetiq
+description: Kinetiq mobile app - AI fitness coaching, recovery scores and workout plans.
 publish_to: "none"
-version: 0.2.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -14,6 +14,8 @@ dependencies:
   health: ^13.3.2
   workmanager: ^0.10.10
   permission_handler: ^13.0.2
+  flutter_secure_storage: ^11.2.0
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:
