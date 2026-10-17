@@ -31,6 +31,9 @@ def _context(user, db: Session) -> dict:
     sleep_hours = sleep.duration_hours if sleep else 0.0
     quality = sleep.quality if sleep else 3
 
+    a_score = activity_score(steps, active_minutes)
+    s_score = sleep_score(sleep_hours, quality)
+
     return {
         "goal": profile.goal if profile and profile.goal else "general fitness",
         "steps": steps,
@@ -38,9 +41,9 @@ def _context(user, db: Session) -> dict:
         "calories_burned": calories,
         "sleep_hours": sleep_hours,
         "sleep_quality": quality,
-        "activity_score": activity_score(steps, active_minutes),
-        "sleep_score": sleep_score(sleep_hours, quality),
-        "recovery_score": recovery_score(activity, sleep),
+        "activity_score": a_score,
+        "sleep_score": s_score,
+        "recovery_score": recovery_score(a_score, s_score),
     }
 
 

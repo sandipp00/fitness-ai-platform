@@ -51,8 +51,11 @@ def workout_plan(
         if activities else 0
     )
     avg_sleep = sum(x.duration_hours for x in sleeps) / len(sleeps) if sleeps else 0
-    recovery = recovery_score(activities[0] if activities else None,
-                              sleeps[0] if sleeps else None)
+    latest_a = activities[0] if activities else None
+    latest_s = sleeps[0] if sleeps else None
+    a_score = activity_score(latest_a.steps, latest_a.active_minutes) if latest_a else 0
+    s_score = sleep_score(latest_s.duration_hours, latest_s.quality) if latest_s else 0
+    recovery = recovery_score(a_score, s_score) if latest_a and latest_s else s_score
 
     goal = profile.goal if profile and profile.goal else "general fitness"
     level = "beginner"
