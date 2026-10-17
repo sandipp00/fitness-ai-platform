@@ -1,12 +1,12 @@
-# Fitness AI Platform
+# Kinetiq
 
-A production-oriented **fitness, nutrition, wellness and recovery platform** with a Flutter mobile client, FastAPI backend, health-data synchronization, analytics, adaptive workout planning, RAG-grounded AI coaching, and ML personalization.
+**Kinetiq** is an AI fitness platform: a Flutter mobile app and a FastAPI backend with Health Connect / HealthKit sync, recovery and sleep scores, trend analytics, adaptive workout planning, RAG-grounded AI coaching, and ML personalization.
 
 ## Current stage
 
-**Advanced MVP / pre-production prototype.**
+**Release candidate (Android first).**
 
-The core product loop is implemented and the backend is deployed. The project is still being hardened before a public release: real-device validation, production observability, database/migration verification, security review, and ML evaluation remain part of the release checklist.
+The code-side launch work is done: secure auth with refresh tokens, per-user timezones, account deletion and export, consent and privacy policy, Health Connect permission flows, background sync, and release signing. CI runs the backend and mobile tests and builds a release APK. What remains needs your accounts and devices: a signing key, a hosted privacy policy, Play Console declarations, and testing on a physical phone. See [`docs/release-android.md`](docs/release-android.md) and [`docs/production-checklist.md`](docs/production-checklist.md).
 
 ## Product architecture
 
@@ -118,8 +118,8 @@ The FastAPI backend exposes the core product domains:
 
 | Area | Endpoints |
 |---|---|
-| Authentication | `/api/auth/register`, `/api/auth/login` |
-| Users | `/api/users/me` |
+| Authentication | `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout-all` |
+| Users | `/api/users/me` (GET/PUT/DELETE), `/api/users/me/timezone`, `/api/users/me/export` |
 | Activity | `/api/activity` |
 | Workouts | `/api/workouts` |
 | Health data | `/api/health-data/sleep`, `/api/health-data/weight`, `/api/health-data/water`, `/api/health-data/sync` |
@@ -199,9 +199,14 @@ python -m venv .venv
 # macOS/Linux
 # source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+cp ../.env.example .env   # sets ENVIRONMENT=development
 uvicorn app.main:app --reload
 ```
+
+An unset `ENVIRONMENT` is treated as **production**, which refuses to start
+with the development secret. Local runs need `ENVIRONMENT=development`, which
+`.env.example`, docker-compose and CI already set.
 
 Local API documentation:
 
@@ -326,9 +331,13 @@ cd backend
 python scripts/predeploy_check.py
 python -m compileall -q app tests scripts
 pytest -q
+
+cd ../mobile
+flutter analyze
+flutter test
 ```
 
-The full test suite must be run in an environment with the project's pinned dependencies installed.
+Both suites also run in GitHub Actions (`.github/workflows/backend.yml`, `mobile.yml`).
 
 ## Production checklist
 
