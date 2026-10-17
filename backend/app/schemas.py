@@ -1,11 +1,20 @@
 from datetime import date
 from typing import Any
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, HttpUrl, field_validator
+
+from .timeutil import is_valid_timezone
 
 
 class RegisterIn(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def fits_bcrypt(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 bytes")
+        return value
 
 
 class LoginIn(BaseModel):
@@ -13,9 +22,19 @@ class LoginIn(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class RefreshIn(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=4096)
+
+
 class TokenOut(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+    expires_in: int
+
+
+class DeleteAccountIn(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
 
 
 class ProfileIn(BaseModel):
@@ -25,6 +44,25 @@ class ProfileIn(BaseModel):
     weight_kg: float | None = Field(default=None, gt=0, le=500)
     goal: str = Field(default="improve_fitness", min_length=1, max_length=80)
     activity_level: str = Field(default="moderate", min_length=1, max_length=40)
+    timezone: str = Field(default="UTC", min_length=1, max_length=64)
+
+    @field_validator("timezone")
+    @classmethod
+    def known_timezone(cls, value: str) -> str:
+        if not is_valid_timezone(value):
+            raise ValueError("Unknown IANA timezone")
+        return value
+
+
+class TimezoneIn(BaseModel):
+    timezone: str = Field(min_length=1, max_length=64)
+
+    @field_validator("timezone")
+    @classmethod
+    def known_timezone(cls, value: str) -> str:
+        if not is_valid_timezone(value):
+            raise ValueError("Unknown IANA timezone")
+        return value
 
 
 class ProfileOut(ProfileIn):
@@ -91,5 +129,6 @@ class SleepSyncIn(BaseModel):
 class HealthSyncIn(BaseModel):
     day: date
     source: str = Field(default="unknown", min_length=1, max_length=80)
-    activity: ActivitySyncIn = Field(default_factory=ActivitySyncIn)
-    sleep: SleepSyncIn = Field(default_factory=SleepSyncIn)
+    # None means "not included in this sync"; existing rows are left untouched.
+    activity: ActivitySyncIn | None = None
+    sleep: SleepSyncIn | None = None

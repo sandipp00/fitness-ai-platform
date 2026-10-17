@@ -1,22 +1,7 @@
-import uuid
 from datetime import date
 
-from fastapi.testclient import TestClient
-from app.main import app
 
-client = TestClient(app)
-
-
-def _auth_headers():
-    email = f"scores-{uuid.uuid4().hex[:8]}@example.com"
-    response = client.post(
-        "/api/auth/register", json={"email": email, "password": "password123"}
-    )
-    assert response.status_code == 200
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
-
-
-def _hit_score_endpoints(headers):
+def _hit_score_endpoints(client, headers):
     r = client.get("/api/ai/recommendations", headers=headers)
     assert r.status_code == 200, r.text
     recovery = r.json()["scores"]["recovery"]
@@ -30,12 +15,12 @@ def _hit_score_endpoints(headers):
     return recovery
 
 
-def test_score_endpoints_without_data():
-    _hit_score_endpoints(_auth_headers())
+def test_score_endpoints_without_data(client, new_user):
+    _hit_score_endpoints(client, new_user()["headers"])
 
 
-def test_score_endpoints_with_data():
-    headers = _auth_headers()
+def test_score_endpoints_with_data(client, new_user):
+    headers = new_user()["headers"]
     r = client.post(
         "/api/health-data/sync",
         json={
@@ -47,4 +32,4 @@ def test_score_endpoints_with_data():
         headers=headers,
     )
     assert r.status_code == 200, r.text
-    assert _hit_score_endpoints(headers) > 0
+    assert _hit_score_endpoints(client, headers) > 0

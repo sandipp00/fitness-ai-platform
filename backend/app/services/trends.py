@@ -9,8 +9,8 @@ def _avg(values):
     return round(mean(values), 2) if values else 0.0
 
 
-def historical_summary(db: Session, user_id: int, days: int = 28) -> dict:
-    start = date.today() - timedelta(days=days - 1)
+def historical_summary(db: Session, user_id: int, days: int = 28, today: date | None = None) -> dict:
+    start = (today or date.today()) - timedelta(days=days - 1)
 
     activities = (
         db.query(Activity)

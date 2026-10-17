@@ -18,9 +18,15 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
       - name: Compile Python
         run: python -m compileall -q app tests scripts
+      - name: Check migrations apply to an empty database
+        env:
+          SECRET_KEY: ci-test-secret-key-1234567890
+          DATABASE_URL: sqlite:///./ci-migrate.db
+          ENVIRONMENT: test
+        run: alembic upgrade head && alembic check && alembic downgrade base && alembic upgrade head && rm -f ci-migrate.db
       - name: Run tests
         env:
           SECRET_KEY: ci-test-secret-key-1234567890

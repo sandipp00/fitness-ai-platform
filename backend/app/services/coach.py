@@ -1,10 +1,12 @@
+import logging
 from dataclasses import asdict
 from openai import OpenAI
 from ..config import settings
 from .vector_store import vector_store
 
+logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are Fitness AI Coach, a wellness assistant.
+SYSTEM_PROMPT = """You are Kinetiq Coach, a wellness assistant.
 Use the supplied user metrics and retrieved trusted health guidance.
 Give practical, conservative fitness guidance.
 
@@ -85,12 +87,26 @@ Answer the question directly in a concise, practical way. Do not invent
 facts that are not in the context or retrieved guidance.
 """
 
-    client = OpenAI(api_key=settings.openai_api_key)
-    response = client.responses.create(
-        model=settings.openai_model,
-        instructions=SYSTEM_PROMPT,
-        input=user_prompt,
-    )
+    try:
+        client = OpenAI(
+            api_key=settings.openai_api_key,
+            timeout=settings.openai_timeout_seconds,
+            max_retries=1,
+        )
+        response = client.responses.create(
+            model=settings.openai_model,
+            instructions=SYSTEM_PROMPT,
+            input=user_prompt,
+        )
+    except Exception:
+        # Provider outages, timeouts and quota errors should not break the
+        # coach; answer from the grounded fallback instead.
+        logger.exception("OpenAI coach request failed; using grounded fallback")
+        return {
+            "answer": _fallback(question, context, sources),
+            "mode": "grounded_fallback",
+            "sources": [asdict(x) for x in sources],
+        }
 
     return {
         "answer": response.output_text,

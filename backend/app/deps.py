@@ -12,10 +12,17 @@ def get_current_user(
     db: Session = Depends(get_db),
 ):
     try:
-        user_id = int(decode_token(credentials.credentials))
+        subject, version = decode_token(credentials.credentials, expected_type="access")
+        user_id = int(subject)
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
     user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+    if not user or user.token_version != version:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return user
+
+
+def require_admin(user=Depends(get_current_user)):
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return user
