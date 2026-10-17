@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import Activity, Sleep, Profile
+from ..schemas import ChatIn
 from ..services.analytics import activity_score, sleep_score, recovery_score
 from ..services.recommendations import build_recommendations
 from ..services.coach import answer as coach_answer
@@ -48,8 +49,8 @@ def _context(user, db: Session) -> dict:
 
 
 @router.post("/chat")
-def chat(payload: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    question = str(payload.get("message", "")).strip()
+def chat(payload: ChatIn, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    question = payload.message.strip()
     if not question:
         return {"answer": "Ask me a fitness or wellness question.", "sources": []}
 

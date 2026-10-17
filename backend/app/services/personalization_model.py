@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -34,7 +35,17 @@ class PersonalizationModel:
             max_depth=5,
             random_state=42,
         )
-        self._fit_bootstrap()
+        # Trained on first use rather than at import so API start-up stays fast.
+        self._fitted = False
+        self._lock = threading.Lock()
+
+    def _ensure_fitted(self):
+        if self._fitted:
+            return
+        with self._lock:
+            if not self._fitted:
+                self._fit_bootstrap()
+                self._fitted = True
 
     def _fit_bootstrap(self):
         rng = np.random.default_rng(42)
@@ -70,6 +81,7 @@ class PersonalizationModel:
         self.model.fit(np.asarray(x), np.asarray(y))
 
     def predict(self, series: Sequence[dict]) -> PersonalizationResult:
+        self._ensure_fitted()
         features = build_features(series)
         vector = np.asarray([[features[name] for name in FEATURE_NAMES]])
         readiness = float(self.model.predict(vector)[0])

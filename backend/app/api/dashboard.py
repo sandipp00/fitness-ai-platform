@@ -1,16 +1,16 @@
-from datetime import date
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import Activity, Sleep, Workout, Water, Weight
 from ..services.analytics import activity_score, sleep_score, recovery_score, recommendations
+from ..timeutil import user_today
 
 router = APIRouter()
 
 @router.get("")
 def dashboard(user=Depends(get_current_user), db: Session = Depends(get_db)):
-    today = date.today()
+    today = user_today(user)
     a = db.query(Activity).filter(Activity.user_id == user.id, Activity.day == today).first()
     s = db.query(Sleep).filter(Sleep.user_id == user.id, Sleep.day == today).first()
     w = db.query(Weight).filter(Weight.user_id == user.id).order_by(Weight.day.desc()).first()

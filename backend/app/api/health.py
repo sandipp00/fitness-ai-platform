@@ -108,7 +108,7 @@ def sync_health_data(payload: HealthSyncIn, user=Depends(get_current_user), db: 
     activity = payload.activity
     sleep = payload.sleep
 
-    if activity:
+    if activity is not None:
         row = _activity_for_day(db, user.id, day)
         values = activity.model_dump()
         if row is None:
@@ -117,7 +117,7 @@ def sync_health_data(payload: HealthSyncIn, user=Depends(get_current_user), db: 
             for key, value in values.items():
                 setattr(row, key, value)
 
-    if sleep.duration_hours > 0:
+    if sleep is not None and sleep.duration_hours > 0:
         row = _sleep_for_day(db, user.id, day)
         values = sleep.model_dump()
         if row is None:

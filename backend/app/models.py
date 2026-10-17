@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from sqlalchemy import String, Integer, Float, Date, DateTime, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import Boolean, String, Integer, Float, Date, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -8,7 +8,10 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # Bumped on logout-all and account deletion to revoke every issued token.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     profile: Mapped["Profile | None"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class Profile(Base):
@@ -21,6 +24,7 @@ class Profile(Base):
     weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     goal: Mapped[str] = mapped_column(String(80), default="improve_fitness")
     activity_level: Mapped[str] = mapped_column(String(40), default="moderate")
+    timezone: Mapped[str] = mapped_column(String(64), default="UTC", server_default="UTC")
     user: Mapped["User"] = relationship(back_populates="profile")
 
 class Activity(Base):
@@ -87,7 +91,7 @@ class WorkoutPlan(Base):
     goal: Mapped[str] = mapped_column(String(80), nullable=False)
     level: Mapped[str] = mapped_column(String(40), nullable=False, default="beginner")
     plan_json: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class ProgressSnapshot(Base):

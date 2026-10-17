@@ -1,4 +1,3 @@
-from datetime import date
 import json
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -10,6 +9,7 @@ from ..services.analytics import recovery_score, activity_score, sleep_score
 from ..services.trends import historical_summary
 from ..services.workout_planner import build_adaptive_plan
 from ..services.personalization_model import personalization_model
+from ..timeutil import user_today, week_start
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ def trends(
     db: Session = Depends(get_db),
 ):
     days = min(90, max(7, days))
-    return historical_summary(db, user.id, days)
+    return historical_summary(db, user.id, days, today=user_today(user))
 
 
 @router.get("/workout-plan")
@@ -59,7 +59,9 @@ def workout_plan(
 
     goal = profile.goal if profile and profile.goal else "general fitness"
     level = "beginner"
-    summary = historical_summary(db, user.id, 28)
+    today = user_today(user)
+    this_week = week_start(today)
+    summary = historical_summary(db, user.id, 28, today=today)
     ml_result = personalization_model.predict(summary["series"])
 
     plan = build_adaptive_plan(
@@ -71,6 +73,7 @@ def workout_plan(
         recovery_score=recovery,
         ml_level=ml_result.recommended_level,
         ml_explanation=ml_result.explanation,
+        week_start=this_week,
     )
     plan["personalization"] = {
         "model_version": ml_result.model_version,
@@ -79,14 +82,19 @@ def workout_plan(
         "explanation": ml_result.explanation,
     }
 
-    row = WorkoutPlan(
-        user_id=user.id,
-        week_start=date.today(),
-        goal=goal,
-        level=level,
-        plan_json=json.dumps(plan),
+    # Keep one stored plan per user per week instead of a row per request.
+    row = (
+        db.query(WorkoutPlan)
+        .filter(WorkoutPlan.user_id == user.id, WorkoutPlan.week_start == this_week)
+        .order_by(WorkoutPlan.id.desc())
+        .first()
     )
-    db.add(row)
+    if row is None:
+        row = WorkoutPlan(user_id=user.id, week_start=this_week)
+        db.add(row)
+    row.goal = goal
+    row.level = level
+    row.plan_json = json.dumps(plan)
     db.commit()
 
     return {"plan": plan, "id": row.id}
@@ -125,7 +133,7 @@ def personalization(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    summary = historical_summary(db, user.id, 28)
+    summary = historical_summary(db, user.id, 28, today=user_today(user))
     result = personalization_model.predict(summary["series"])
     return {
         "model_version": result.model_version,

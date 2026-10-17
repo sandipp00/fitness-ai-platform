@@ -11,6 +11,7 @@ def build_adaptive_plan(
     recovery_score: int,
     ml_level: str | None = None,
     ml_explanation: str | None = None,
+    week_start: date | None = None,
 ) -> dict:
     goal = goal or "general fitness"
     level = level or "beginner"
@@ -54,7 +55,7 @@ def build_adaptive_plan(
         ]
 
     return {
-        "week_start": date.today().isoformat(),
+        "week_start": (week_start or date.today()).isoformat(),
         "goal": goal,
         "level": level,
         "strategy": intensity,
