@@ -17,7 +17,10 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.sandipp00.kinetiq"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android 14.1+ must be compiled against API 37.
+    // compileSdk only affects which APIs are visible at build time; runtime
+    // behaviour is still governed by targetSdk below.
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
